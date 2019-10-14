@@ -3,7 +3,9 @@
 
 **things to do:**
 > [] Make the gauge wireless
+
 > [] update 3D design
+
 > [] implement configurable screen-view
 
 
