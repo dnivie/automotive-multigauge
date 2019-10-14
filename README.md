@@ -2,9 +2,9 @@
 ## Due to aftermarket autogauges being so expensive and cluttering up your view, I decided to make my own gauges and displaying them on only one screen. Saving hundreds of dollars and making my interior look a lot cleaner.
 
 **things to do:**
-[] Make the gauge wireless
-[] update 3D design
-[] implement configurable screen-view
+> [] Make the gauge wireless
+> [] update 3D design
+> [] implement configurable screen-view
 
 
 Bosch LSU4.2 Wideband Sensor
