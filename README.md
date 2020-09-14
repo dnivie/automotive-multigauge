@@ -1,12 +1,7 @@
 # arduino based multigauge
 ## Due to aftermarket autogauges being so expensive and cluttering up your view, I decided to make my own gauges and displaying them on only one screen. Saving hundreds of dollars and making my interior look a lot cleaner.
 
-**things to do:**
-> [] Make the gauge wireless
-
-> [] update 3D design
-
-> [] implement configurable screen-view
+## This project is considered finished. See my Electronic Boost Controller repo for new project which shares lots of code with this project.
 
 
 Bosch LSU4.2 Wideband Sensor
