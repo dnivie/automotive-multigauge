@@ -3,19 +3,14 @@
 #include <SPI.h>
 #include <Wire.h>
 
-//https://github.com/olikraus/u8g2
-
 //U8G2_SH1106_128X64_NONAME_1_HW_I2C u8g2(U8G2_R2); //type of  screen
-U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
+//U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
+U8G2_SSD1309_128X64_NONAME0_1_4W_SW_SPI u8g2(U8G2_R0, 13, 11, 10, 9, 8);
+// UNO/Mega: scl 13, sda 11, res 8, dc 9, cs 10
 
-float boostPressure;
-float oilPressure;
-float afrNumber;
-//int oilWarning = 10;
-int boostMax = 0;
-int boostMin = 0;
-int buttonState = 2;
-
+int boostMax;
+int boostMin;
+int sensorState = 0;
 
 unsigned long startMillis;  //timer
 unsigned long currentMillis;
@@ -23,16 +18,18 @@ unsigned long currentMillis;
 unsigned long startPeakMillis; //peak timer
 unsigned long currentPeakMillis;
 
-const unsigned long period = 50;  //read sensor interval
-const unsigned long peakPeriod = 15000; //peakBoost will reset after 15 sec.
+const unsigned long period = 50;  // read sensor interval 50 ms
+const unsigned long peakPeriod = 15000; // peakBoost will reset after 15 sec.
 
-const int sensorHistoryLength = 128;  //length of screen is 128 pixels
-int sensorHistory[sensorHistoryLength];
-int sensorHistoryPos = sensorHistoryLength - 1;
+//const int sensorHistoryLength = 128;  //length of screen is 128 pixels
+//int sensorHistory[sensorHistoryLength];
+//int sensorHistoryPos = sensorHistoryLength - 1;
 
 
 void setup(void) {
-  //startup sound (Mario power UP)
+  int sensors[1] = {analogRead(A1)}; // boost on A0, afr on A1
+  // startup sound (Mario power UP)
+  /*
   tone(6,1319,125); //e6
   delay(130);
   tone(6,1568,125); //g6
@@ -45,178 +42,124 @@ void setup(void) {
   delay(130);
   tone(6,3136,125); //g7
   delay(125);
-  noTone(6);
+  noTone(6);*/
 
   u8g2.begin();
   startMillis = millis(); //start timer
   startPeakMillis = millis();  //timer for peakValue
-  Serial.begin(9600);
-  Serial.println("OK setup");
+  //Serial.begin(9600);
+  
+  // check if afr logging is connected:
+  if (sensors[0] > 0){
+    sensorState = 0; // boost and afr
+  }
+  else{
+    sensorState = 1; // boost only
+  }
 }
 
 
 void loop(void) {
-  //Only read from the sensors every 50 ms.
-  //used instead of delay() function
+  
+  float boostPressure = 0;
+  float afrNumber = 0;
   currentMillis = millis();
   currentPeakMillis = millis();
-  if (currentMillis - startMillis >= period) {
-    readBoostData(); //read from boostSensor
-    //readOilSensorData();
-    readAfrSensor();
+  if (currentMillis - startMillis >= period) {  // read sensors
+    boostPressure = readBoostData();
+    afrNumber = readAfrSensor();
     startMillis = currentMillis;
-
-    Serial.print("boost: ");
-    Serial.println(boostMax/1000);
-    Serial.print("afr: ");
-    Serial.println(afrNumber);
-    //Serial.print(", oilP: ");
-    //Serial.print(oilPressure/100, 2);
-    //Serial.println(" bar ");
   }
 
   //the display has 3 modes:
-  switch (buttonState){
+  switch (sensorState){
     case 0:
-      //screen mode 0 (all info: Boost pressure, oil pressure and Air Fuel Ratio)
+      //screen mode 0 (all info: Boost pressure and Air Fuel Ratio)
       u8g2.firstPage();
       do {
         // Draw current pressure
         u8g2.setFont(u8g2_font_fub20_tf);
         char cstr[6];
         dtostrf((float)boostPressure/1000, 1, 2, cstr);
-
-        u8g2.drawStr(0, 20, cstr);
+        u8g2.drawStr(0, 39, cstr);
 
         // Draw peak pressure
         u8g2.setFont(u8g2_font_fub11_tf);
         dtostrf((float)boostMax / 1000, 1, 2, cstr);
         int yPos = u8g2.getStrWidth(cstr);
-        u8g2.drawStr(128 - yPos, 11, cstr);
+        u8g2.drawStr(128 - yPos, 64, cstr);
 
         //writing
         u8g2.setFont(u8g2_font_fub11_tf);
-        u8g2.drawStr(82, 23, "Boost");
-        u8g2.drawStr(82, 60, "Oil P.");
-        u8g2.drawStr(82, 40, "AFR");
-
-        //Draw oil pressure
-        u8g2.setFont(u8g2_font_fub14_tf);
-        dtostrf((float)oilPressure / 100, 1, 2, cstr);
-        u8g2.drawStr(0, 60, cstr);
-
-        if (oilPressure < 60){ //warning set to 0.6bar
-          u8g2.setFont(u8g2_font_fub11_tf);
-          u8g2.drawStr(82, 60, "LOW!");
-        }
+        //u8g2.drawStr(103, 64, "bar");
+        u8g2.drawStr(98, 14, "AFR");
+        u8g2.drawStr(82, 29, "Turbo");
+        u8g2.drawStr(64, 64, "bar");
 
         //Draw afr
-        u8g2.setFont(u8g2_font_fub14_tf);
+        u8g2.setFont(u8g2_font_fub11_tf);
         dtostrf((float)afrNumber, 1, 2, cstr);
-        u8g2.drawStr(0, 40, cstr);
+        u8g2.drawStr(0, 14, cstr);
 
-        //Serial.println(currentMillis);
-
-
-        //drawBarGraph(0, 22, 128, 8);
-        //drawGraph(0, 32, 128, 31);
+        u8g2.setDrawColor(2);
+        u8g2.drawBox(0, 15, 128, 1);
+        //drawBarGraph(0, 52, 128, 12, boostPressure);
+        drawGauge(0, 66, 128, 12, boostPressure);
 
        } while ( u8g2.nextPage() );
        break;
+
     case 1:
       //screen mode 1 (boost pressure only)
       u8g2.firstPage();
       do{
-        u8g2.setFont(u8g2_font_fub25_tf);
+        
+        u8g2.setFont(u8g2_font_fub20_tf);
         char cstr[6];
         dtostrf((float)boostPressure/1000, 1, 2, cstr);
+        u8g2.drawStr(0, 37, cstr);
 
-        u8g2.drawStr(0, 30, cstr);
+        // Draw peak pressure
+        u8g2.setFont(u8g2_font_fub11_tf);
+        dtostrf((float)boostMax / 1000, 1, 2, cstr);
+        int yPos = u8g2.getStrWidth(cstr);
+        u8g2.drawStr(128 - yPos, 64, cstr);
 
         //writing
         u8g2.setFont(u8g2_font_fub11_tf);
-        u8g2.drawStr(82, 30, "Boost");
+        u8g2.drawStr(0,12, "Boost");
+        u8g2.drawStr(64,30, "bar");
+        
+        drawGauge(0, 66, 128, 12, boostPressure);
 
       } while ( u8g2.nextPage() );
       break;
 
     case 2:
-    // Boost pressure and AFR
+    // AFR only
       u8g2.firstPage();
       do {
-        // Draw current pressure
-        u8g2.setFont(u8g2_font_fub20_tf);
+        draw();
         char cstr[6];
-        dtostrf((float)boostPressure/1000, 1, 2, cstr);
-
-        u8g2.drawStr(0, 20, cstr);
-
-        // Draw peak pressure
-        u8g2.setFont(u8g2_font_fub11_tf);
-        dtostrf((float)boostMax / 1000, 1, 2, cstr);
-        int yPos = u8g2.getStrWidth(cstr);
-        u8g2.drawStr(128 - yPos, 11, cstr);
-
         //writing
         u8g2.setFont(u8g2_font_fub11_tf);
-        u8g2.drawStr(82, 23, "Boost");
         u8g2.drawStr(82, 60, "AFR");
 
         //Draw afr
-        u8g2.setFont(u8g2_font_fub20_tf);
+        u8g2.setFont(u8g2_font_fub17_tf);
         dtostrf((float)afrNumber, 1, 2, cstr);
-        u8g2.drawStr(0, 60, cstr);
+        u8g2.drawStr(26, 56, cstr);
 
        } while ( u8g2.nextPage() );
        break;
   }
+}
 
 /*
-  u8g2.firstPage();
-  do {
-    // Draw current pressure
-    u8g2.setFont(u8g2_font_fub20_tf);
-    char cstr[6];
-    dtostrf((float)boostPressure/1000, 1, 2, cstr);
-
-    u8g2.drawStr(0, 20, cstr);
-
-    // Draw peak pressure
-    u8g2.setFont(u8g2_font_fub11_tf);
-    dtostrf((float)boostMax / 1000, 1, 2, cstr);
-    int yPos = u8g2.getStrWidth(cstr);
-    u8g2.drawStr(128 - yPos, 11, cstr);
-
-    //writing
-    u8g2.setFont(u8g2_font_fub11_tf);
-    u8g2.drawStr(82, 23, "Boost");
-    u8g2.drawStr(82, 60, "Oil P.");
-    u8g2.drawStr(82, 40, "AFR");
-
-    //Draw oil pressure
-    u8g2.setFont(u8g2_font_fub14_tf);
-    dtostrf((float)oilPressure / 100, 1, 2, cstr);
-    u8g2.drawStr(0, 60, cstr);
-
-    if (oilPressure < 60){ //warning set to 0.6bar
-      u8g2.setFont(u8g2_font_fub11_tf);
-      u8g2.drawStr(82, 60, "LOW!");
-    }
-
-    //Draw afr
-    u8g2.setFont(u8g2_font_fub14_tf);
-    dtostrf((float)afrNumber, 1, 2, cstr);
-    u8g2.drawStr(0, 40, cstr);
-
-    //Serial.println(currentMillis);
-
-
-    //drawBarGraph(0, 22, 128, 8);
-    //drawGraph(0, 32, 128, 31);
-
-  } while ( u8g2.nextPage() );
-  */
-}
+void draw()
+{
+  u8g2.drawBitmap(0, 0, 16, 64, boss_graphics);
+}*/
 
 
 float normaliseSensorData(int m) {  //calculate sensorValue
@@ -233,29 +176,17 @@ float normaliseSensorData(int m) {  //calculate sensorValue
   */
 
   /*
-    //from github
     Sensor voltage ranges from 0.5v to 4.5v, converted to analogRead values (0 min, 1023 max) that's 102 to 921
     rmin = 102
     rmax = 921
-    Sensor reads from 0 to 50psi
-    tmin = 0
-    tmax = 5000
-    normalisedValue = ((m − 102) / (921 − 102)) * (5000 − 0) + 0
-    normalisedValue = ((m − 102) / 819) * 5000
-    normalisedValue = (m − 102) / 0.1638
+    
+    tmin = -1000
+    tmax = 2000
+    normalisedValue = ((m − 102) / (921 − 102)) * (2000 − (-1000)) + (-1000)
+    normalisedValue = ((m − 102) / 819) * 2000
+    normalisedValue = (m − 102) / 0.4095
 
-    //my sensor (psi)
-    Sensor voltage ranges from 0.045v to 5v, converted to analogRead values (0 min, 1023 max) that's 9 to 1023
-    rmin = 9
-    rmax = 1023
-    Sensor reads from -14.5 to 29psi
-    tmin = 0
-    tmax = 2900
-    normalisedValue = ((m − 9) / (1023 − 9)) * (2900 − 0) + 0
-    normalisedValue = ((m − 9) / 1012) * 2900
-    normalisedValue = (m − 9) / 0.1638
-
-    //my sensor (bar)
+    //new sensor (not in use)
     0.045 to 4.5v
     rmin = 9
     rmax = 921
@@ -264,26 +195,7 @@ float normaliseSensorData(int m) {  //calculate sensorValue
     tmax = 300
     normalisedValue = ((m - 9) / (921 - 9)) * (3000 - 0) - 0
   */
-
-  return (m-9)/0.2535;
-}
-
-
-float calculateOilData(int o){  //calculate oilPressure function
-  //0-150psi
-
-  /*
-  0-10bar
-  rmin = 102 (0.5v)
-  rmax = 921 (4.5v)
-  tmin = 0
-  tmax = 100
-  normalisedValueBAR = ((o - 102) / (921 - 102)) * (100 - 0) + 0
-  //(o - 102)
-
-  */
-  //return (o - 102) / 0.0546;
-  return (o-102)/0.819;
+  return (m-102)/0.4095;
 }
 
 
@@ -293,33 +205,19 @@ float calculateAfrData(int n){
 }
 
 
-void readAfrSensor(void){
-  float afrData = calculateAfrData(analogRead(A0));
-  afrNumber = afrData;
-
+float readAfrSensor(void){
+  float afrData = calculateAfrData(analogRead(A1));
+  return afrData;
 }
 
-
-void readOilSensorData(void){
-  float absoluteOilPressure = calculateOilData(analogRead(A2));
-  oilPressure = absoluteOilPressure-124;
-  if (oilPressure < 0) oilPressure = 0; //oilPressure can't be negative
-
-
-
-}
 
 //boost pressure
-void readBoostData(void) {
-  float absolutePressure = normaliseSensorData(analogRead(A1));
-
-
-
-  // Subtract 14.7 psi == pressure at sea level (1 bar)
-  // Additional 2.57psi subtracted as boost was showing 2.57 with engine off !!!OBS!!!
-
-  boostPressure = absolutePressure - 300;
-  //boostPressure = absolutePressure - 1000;
+float readBoostData(void) {
+  float absolutePressure = normaliseSensorData(analogRead(A0));
+  // Subtract 14.7psi/1bar (pressure at sea level)
+  
+  // tune this value until sensor shows 0 with the engine off:
+  float boostPressure = absolutePressure - 200;
 
   // Update max and min
   if (boostPressure > boostMax) boostMax = boostPressure;
@@ -330,11 +228,12 @@ void readBoostData(void) {
       startPeakMillis = currentPeakMillis;
     }
 
-  // Log the history
-  addSensorHistory(boostPressure);
+  // Log the history:
+  //addSensorHistory(boostPressure);
+  return boostPressure;
 }
 
-
+/*
 void addSensorHistory(int val) {
   sensorHistory[sensorHistoryPos] = val;
   sensorHistoryPos--;
@@ -347,66 +246,35 @@ int getSensorHistory(int index) {
   if (index >= sensorHistoryLength) index = index - sensorHistoryLength;
   return sensorHistory[index];
 }
+*/
 
 
-// Display graphics (not in use)
-/*
-void drawGraph(int x, int y, int len, int height) {
-  // Draw the lines
-  drawHorizontalDottedLine(x, y, len);
-  drawHorizontalDottedLine(x, y + height, len);
-
-  var absMin = Math.abs(boostMin);
-  int absMin = abs(boostMin);
-  int range = absMin + boostMax;
-
-  // Draw 0 line
-  int zeroYPos = mapValueToYPos(absMin, range, y, height);
-  drawHorizontalDottedLine(x, zeroYPos, len);
-
-  // Draw the graph line
-  for (int i = 0; i < 128; i++) {
-    // Scale the values so that the min is always 0
-    int valueY = getSensorHistory(i) + absMin;
-
-    // Calculate the coordinants
-    int yPos = mapValueToYPos(valueY, range, y, height);
-    int xPos = len - i;
-    if (yPos < zeroYPos) {
-      // Point is above zero line, fill in space under graph
-      u8g2.drawVLine(xPos, yPos, zeroYPos + 1 - yPos);
-    } else {
-      // Point is below zero line, draw graph line without filling in
-      u8g2.drawPixel(xPos, yPos);
-    }
-  }
-
-
-}
-
-
-void drawBarGraph(int x, int y, int len, int height) {
+// Display graphics
+void drawBarGraph(int x, int y, int len, int height, int boostPressure) {
+  int peakX = (float(boostMax)/1250) * len;
+  u8g2.setDrawColor(1);
+  u8g2.drawBox(peakX, y, 1, height);
   if (boostPressure > 0) {
     // Draw the pressure bar behind the graph
-    int barLength = ((float)boostPressure / boostMax) * len;
+    //int barLength = ((float)boostPressure / boostMax) * len;  // bar maxes out at previous peak boost value
+    int barLength = (float(boostPressure)/1250) * len;  // bar maxes out at 1.2 bar
+    //height = (float(boostPressure)/1000) * (-6);
     u8g2.setDrawColor(2);
     u8g2.drawBox(x, y, barLength, height);
-    u8g2.setDrawColor(1);
+    //u8g2.setDrawColor(1);
   }
 }
 
 
-// Maps a value to a y height
-int mapValueToYPos(int val, int range, int y, int height) {
-  float valueY = ((float)val / range) * height;
-  return y + height - (int)valueY;
-}
-
-
-
-void drawHorizontalDottedLine(int x, int y, int len) {
-  for (int i = 0; i < len; i++) {
-    if (!(i % 4)) u8g2.drawPixel(x + i, y);
+void drawGauge(int x, int y, int len, int maxHeight, int boostPressure) {
+  int barLength = (float(boostPressure)/1000) * len;
+  int h = 0;
+  int width = 5;
+  for(int i = 0; i <= barLength; i+=8){
+    x = i;
+    h = 1+i/8;
+    y = (y + h*0.28)-4; 
+    u8g2.setDrawColor(3);
+    u8g2.drawBox(x,y,width,h);
   }
 }
-*/
