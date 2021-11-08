@@ -3,18 +3,15 @@
 #include <SPI.h>
 #include <Wire.h>
 
-// uncomment the type of screen in use:
-
-//U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);  // 1.3" screen
-//U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_MIRROR, /* reset=*/ U8X8_PIN_NONE);  // 1.3" screen mirrored for HUD
-U8G2_SSD1309_128X64_NONAME0_1_4W_SW_SPI u8g2(U8G2_R0, 13, 11, 10, 9, 8);    // 2.4" screen
-//U8G2_SSD1309_128X64_NONAME0_1_4W_SW_SPI u8g2(U8G2_MIRROR, 13, 11, 10, 9, 8);    // 2.4" screen mirrored for HUD
+//U8G2_SH1106_128X64_NONAME_1_HW_I2C u8g2(U8G2_R2); //type of  screen
+U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);  // 1.3" screen
+//U8G2_SSD1309_128X64_NONAME0_1_4W_SW_SPI u8g2(U8G2_R0, 13, 11, 10, 9, 8);    // 2.4" screen
 // UNO/Mega: scl 13, sda 11, res 8, dc 9, cs 10
 
 int boostMax;
 int boostMin;
-int peakX = 1000; //  graphics length of boostPressure in "drawBarGraph"-function
-int screenState = 1; // set state to 3 if you want startup-screen
+int peakX = 1000; //  graphics length of boostPressure in "drawBarGraph"
+int screenState = 4; // what screen to be displayed (set 4 for startup-message)
 
 unsigned long startMillis;  //timer
 unsigned long currentMillis;
@@ -24,9 +21,10 @@ unsigned long currentPeakMillis;
 
 const unsigned long period = 50;  // read sensor interval 50 ms
 const unsigned long peakPeriod = 15000; // peakBoost will reset after 15 sec.
-const unsigned long startUpPeriod = 1000; // startup-screen duration
+const unsigned long startUpPeriod = 1000;
 
-const int sensorHistoryLength = 128;  //horizontal length of screen is 128 pixels
+// used for plotting function:
+const int sensorHistoryLength = 128;  // horizontal length of screen is 128 pixels
 int sensorHistory[sensorHistoryLength];
 int sensorHistoryPos = sensorHistoryLength - 1;
 
@@ -63,14 +61,14 @@ void loop(void) {
   bool lean = false;
   currentMillis = millis();
   currentPeakMillis = millis();
+  
   if (currentMillis - startMillis >= period) {  // read sensors
     boostPressure = readBoostData();
     afrNumber = readAfrSensor();
-    lean = leanCheck(boostPressure, afrNumber);
+    lean = leanCheck(boostPressure, afrNumber); // check if fuel-mixture is lean
     startMillis = currentMillis;
   }
 
-  //the display has 3 modes:
   switch (screenState){
     case 0:
       //screen mode 0 (curved line graphics)
@@ -109,7 +107,7 @@ void loop(void) {
        break;
 
     case 1:
-      //screen mode 1 (vertical graphics)
+      //screen mode 1 (horizontal graphics)
       u8g2.firstPage();
       do{
         
@@ -174,27 +172,46 @@ void loop(void) {
        } while ( u8g2.nextPage() );
        break;
 
-    case 3: // startup-screen
+    case 3:
+    // screen mode 3 (circular gauge)
     u8g2.firstPage();
     do {
-        //if((analogRead(A0) > 0) && (analogRead(A1) > 0)){
+        DrawCircularGauge(30,30,30,10,boostPressure,-1,1.5);
+        
+        char cstr[6];
+        u8g2.setFont(u8g2_font_fub20_tf);
+        dtostrf((float)boostPressure, 1, 1, cstr);
+        u8g2.drawStr(48, 64, cstr);
+        u8g2.setFont(u8g2_font_7x13B_tf);
+        u8g2.drawStr(103, 64, "bar");   
+    } while ( u8g2.nextPage() );
+    break;
+
+    case 4:
+    // startup message
+    u8g2.firstPage();
+    do {
+        
         u8g2.setFont(u8g2_font_fub11_tf);
-        //u8g2.drawStr(0, 14, "Sensors:");
-        u8g2.drawStr(0, 35, "hello friend");
-        //}
+        u8g2.drawStr(0, 35, "hello friend"); // bonsoir, Elliot 
 
       if (currentMillis - startPeakMillis >= startUpPeriod){
-        screenState = 1; // switch to info-screen
+        screenState = 1; // change screen
       }
 
-    } while (u8g2.nextPage() );
+    } while ( u8g2.nextPage() );
     break;
   }
 }
 
 
+/* void draw()  // draw bitmap image (not in use)
+{
+  u8g2.drawBitmap(0, 0, 16, 64, pepeDrive);
+} */
 
-float normaliseSensorData(int m) {  //calculate sensorValue for boost pressure
+
+float normaliseSensorData(int m) {  // calculate sensorvalue for boostPressure
   //check: input voltage from arduino, raw value (engine off)
   /*
     Scale the sensor reading into range
@@ -224,7 +241,7 @@ float normaliseSensorData(int m) {  //calculate sensorValue for boost pressure
 }
 
 
-float calculateAfrData(int n){  // calculate AFR-value
+float calculateAfrData(int n){
   //10-20afr
   return ((n * (5.0/1023.0)) * 2) + 10;
 }
@@ -236,13 +253,10 @@ float readAfrSensor(void){
 }
 
 
-//boost pressure
 float readBoostData(void) {
-  //int testData = 580;
   //float absolutePressure = normaliseSensorData(testData);
   float absolutePressure = normaliseSensorData(analogRead(A0));
   absolutePressure = kalmanFilter(absolutePressure); // filter measurement 
-  // Subtract 14.7psi/1bar (pressure at sea level)
   
   // tune this value until sensor shows 0 with the engine off:
   float boostPressure = absolutePressure - 900;
@@ -253,12 +267,12 @@ float readBoostData(void) {
     startPeakMillis = currentPeakMillis; // reset timer when new boostMax is reached
   }
 
-  if (currentPeakMillis - startPeakMillis > peakPeriod){ //reset peakValue;
+  if (currentPeakMillis - startPeakMillis > peakPeriod){ // reset peakValue;
       boostMax = 0;
       startPeakMillis = currentPeakMillis;
     }
 
-  // Log the history:
+  // Log history:
   addSensorHistory(boostPressure);
   
   return boostPressure;
@@ -268,14 +282,14 @@ float readBoostData(void) {
 bool leanCheck(float boost, float afr){
   bool leanMixture = false;
   
-  if(boost > 500 && afr > 13){
+  if(boost > 500 && afr > 13){ // if 0.5 bar at 13 AFR (fairly conservative lean protection)
     leanMixture = true;
   }
 
   return leanMixture;
 }
 
-// smoothen the sensor-values
+
 float kalmanFilter(float U){
   static const float R = 40; // noise covariance
   static const float H = 1; // measurement map scalar
@@ -296,14 +310,14 @@ float kalmanFilter(float U){
 }
 
 
-// used for plotting
+
 void addSensorHistory(int val) {
   sensorHistory[sensorHistoryPos] = val;
   sensorHistoryPos--;
   if (sensorHistoryPos < 0) sensorHistoryPos = sensorHistoryLength - 1;
 }
 
-// used for plotting
+
 int getSensorHistory(int index) {
   index += sensorHistoryPos;
   if (index >= sensorHistoryLength) index = index - sensorHistoryLength;
@@ -320,14 +334,10 @@ void drawBarGraph(int x, int y, int len, int height, int boostPressure) {
   }
   
   // Draw the pressure bar behind the graph
-  //int barLength = ((float)boostPressure / boostMax) * len;  // bar maxes out at previous peak boost value
-  //normalisedValue = ((boostPressure + 1000) / 2100) * 1.1;
-  //float barLen = (float(boostPressure) + 1000.0) / 1909.0;
   float barLen = (float(boostPressure) + peakX) / 1909.0;
   Serial.println(barLen*len);
   float barLength = barLen * len;
-  //int barLength = (float(boostPressure)/1100) * len;  // bar maxes out at 1.2 bar
-  //height = (float(boostPressure)/1000) * (-6);
+  
   u8g2.setDrawColor(2);
   u8g2.drawBox(x, y, barLength, height);
   u8g2.drawBox(64, y, 1, 12);
@@ -336,8 +346,45 @@ void drawBarGraph(int x, int y, int len, int height, int boostPressure) {
   
 }
 
+// circular gauge (3 quarter)
+void DrawCircularGauge(int x, byte y, byte r, byte p, int value, int minVal, int maxVal) {
+  // x,y = coordinate, r = radius, p = thickness
+  int n=(r/100.00)*p; // calculates the length 
+  
+  int ns;
+  float gs_rad=-3.14; // start of circle 
+  float ge_rad=1.572; // end 
+  
+  n=r-1; 
+  ns=r-p;
+  
+  u8g2.drawCircle(x,y,r, U8G2_DRAW_LOWER_LEFT|U8G2_DRAW_UPPER_LEFT|U8G2_DRAW_UPPER_RIGHT); // scale outside
+  u8g2.drawCircle(x,y,r-p, U8G2_DRAW_LOWER_LEFT|U8G2_DRAW_UPPER_LEFT|U8G2_DRAW_UPPER_RIGHT); // internal scale
+  u8g2.drawLine(x-r, y, x-r+(p+2), y); // scale line at min
+  u8g2.drawLine(x+r, y, x+r-(p+2), y); // scale line at max                   
+  u8g2.drawLine(x, y-r, x, y-r+(p+2)); // half scale line
+  u8g2.drawLine(x, (y+r), x, y+(r-p)-2); // bottom scale line      
+  u8g2.drawCircle(x,y,1);
+  
+  float l=((value-minVal)*(ge_rad-gs_rad)/(maxVal-minVal)+gs_rad); // displaying a needle from center of circle
+  int xp = x+(sin(l) * n);  // x end point of the line
+  int yp = y-(cos(l) * n);  // y end point of the line
+  int x1 = x;
+  int y1 = y;
+  u8g2.drawLine(x1,y1,xp,yp); // line to fill the scale
+  
+  for(int k=1; k<=value; k+=22) { // displaying a scale filled with many lines next to each other
+    float i=((k-minVal)*(ge_rad-gs_rad)/(maxVal-minVal)+gs_rad);
+    int xp = x+(sin(i) * n);  // x end point of the line
+    int yp = y-(cos(i) * n);  // y end point of the line
+    int xs = x+(sin(i) * ns); // x the start point of the lines
+    int ys = y-(cos(i) * ns); // y the start point of the lines
+    u8g2.drawLine(xs,ys,xp,yp); // line to fill the scale          
+  }                 
+}
 
-// fancy line graphics (not very fancy)
+
+// fancy line
 void drawGauge(int x, int y, int len, int maxHeight, int boostPressure) {
   int barLength = (float(boostPressure)/1000) * len;
   int h = 0;
@@ -352,7 +399,7 @@ void drawGauge(int x, int y, int len, int maxHeight, int boostPressure) {
 }
 
 
-// plotting (fancy)
+// plotting
 void drawGraph(int x, int y, int len, int height) {
   // Draw the lines
   drawHorizontalDottedLine(x, y, len);
@@ -382,8 +429,6 @@ void drawGraph(int x, int y, int len, int height) {
       u8g2.drawPixel(xPos, yPos);
     }
   }
-
-
 }
 
 
@@ -392,7 +437,6 @@ int mapValueToYPos(int val, int range, int y, int height) {
   float valueY = ((float)val / range) * height;
   return y + height - (int)valueY;
 }
-
 
 
 void drawHorizontalDottedLine(int x, int y, int len) {
