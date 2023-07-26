@@ -1,11 +1,11 @@
-# arduino based multigauge with u8g2 monochrome displays
+# arduino based boost and AFR gauge with u8g2 monochrome display
 
 ## parts list:
-- Bosch LSU4.2 Wideband Sensor
+- Bosch LSU4.2 Wideband Sensor with wideband controller
 - Defi vacuum/boost pressure sensor
-  - or any 5V vacuum/pressure sensor
-- link to 3D-print for oled-frame for 1.3" [screen](https://a360.co/30CXK5K)
-- SH1106 128x64 1.3" or SSD1309 128x64 2.4" OLED screen
+  - or any 5V pressure sensor
+  - This project is using a -1/2 Bar vacuum/boost pressure sensor
+- Fermion: 1.51” OLED Transparent Display SSD1309 128x64
   - see [this list](https://github.com/olikraus/u8g2/wiki/u8g2setupcpp) for all supported displays
-
-### The gaugepod is 52mm in diameter for use in standard gaugepods
+- LM2596 (or equivalent) step-down voltage regulator, for converting from the cars battery (12V+) to the arduino.
+  - Tune the converter to around 7V, even though the Arduino takes 5V. This is because of the voltage drop from the V_in to the V_out.
