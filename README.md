@@ -1,6 +1,6 @@
 # arduino based boost and AFR gauge with u8g2 monochrome display
 
-## parts list:
+## guide:
 - Bosch LSU4.2 Wideband Sensor with wideband controller
 - Defi vacuum/boost pressure sensor
   - or any 5V pressure sensor
