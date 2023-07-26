@@ -9,8 +9,8 @@
 //U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);  // 1.3" screen
 //U8G2_SSD1309_128X64_NONAME0_1_4W_SW_SPI u8g2(U8G2_R0, 13, 11, 10, 9, 8);    // 2.4" screen
 U8G2_SSD1309_128X64_NONAME0_1_4W_SW_SPI u8g2(U8G2_R0, 13, 51, 10, 9, 8);    // 1.5" screen
-// UNO/Mega: scl 13 grønn, sda 11, res 8 grå, dc 9 lilla, cs 10 blå
-// mosi 51 gul
+// UNO/Mega: scl 13 green, sda 11, res 8 grey, dc 9 purple, cs 10 blue
+// mosi 51 yellow
 
 int boostPeak;
 int boostMax;
