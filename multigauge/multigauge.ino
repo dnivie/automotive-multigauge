@@ -139,7 +139,8 @@ void loop(void)
         u8g2.setFont(u8g2_font_fub20_tf);
         char cstr[6];
         dtostrf((float)boostPressure / 1000, 1, 2, cstr);
-        u8g2.drawStr(30, 15, cstr);
+        u8g2.drawStr(65, 32, cstr);
+        
 
         // draw max pressure
         //u8g2.setFont(u8g2_font_fub11_tf);
@@ -147,14 +148,18 @@ void loop(void)
         //int yPos = u8g2.getStrWidth(cstr);
         //u8g2.drawStr(128 - yPos, 11, cstr);
 
-        // draw afr
-        u8g2.setFont(u8g2_font_fub11_tf);
+        //Draw afr
+        //u8g2.setFont(u8g2_font_fub11_tf);
+        u8g2.setFont(u8g2_font_mozart_nbp_h_all);
+        u8g2.drawStr(0, 32, "x100kPa");
         dtostrf((float)afrNumber, 1, 2, cstr);
-        u8g2.drawStr(48, 1, cstr);
-        u8g2.drawStr(0, 1, "AFR:");
+        u8g2.drawStr(97, 9, cstr);
+        drawAfrGraphics(0, 10, afrNumber);
+        u8g2.drawBox(0, 10, 128, 1);
 
         // plotting
-        drawGraph(0, 32, 128, 31);
+        //u8g2.drawBox(0, 34, 128, 1);
+        drawGraph(0, 33, 122, 31);
 
        } while ( u8g2.nextPage() );
        break;
@@ -178,13 +183,18 @@ void loop(void)
     // startup message
     u8g2.firstPage();
     do {
+        char cstr[6];
         u8g2.setFont(u8g2_font_mozart_nbp_h_all);
-        u8g2.drawStr(0, 64, "hello friend"); // bonsoir, Elliot
+        u8g2.drawStr(13, 50, "$ bonsoir, Elliot"); // bonsoir, Elliot
+        dtostrf(analogRead(A0), 1, 0, cstr);
+        u8g2.drawStr(13,12, cstr);
+        dtostrf(analogRead(A1), 1, 0, cstr);
+        u8g2.drawStr(13,31, cstr);
         //draw();
 
       if (currentMillis - startPeakMillis >= startUpPeriod)
       {
-        screenMode = 1;
+        screenMode = 2;
       }
 
     } while ( u8g2.nextPage() );
@@ -247,7 +257,7 @@ float readBoostData(void)
 {
   
   float absolutePressure = normaliseSensorData(analogRead(A0));
-  //float absolutePressure = normaliseSensorData(analogRead(A0));
+  
   absolutePressure = kalmanFilter(absolutePressure); // filter measurement 
   // Subtract 14.7psi/1bar (pressure at sea level)
   
@@ -338,14 +348,14 @@ void drawAfrGraphics(int y, int height, float afr)
 {
   //int x = map(afr, 10, 20, 0, 128); 
   float afrNormal = (afr / 10) - 1; // maps afr to [0,1]
-  float x = afrNormal * 128; // multiply by horizontal screen length
+  float x = afrNormal * 95; // multiply by horizontal screen length
 
   u8g2.setDrawColor(2);
   u8g2.drawBox(x-1, y, 1, height);
   u8g2.drawBox(x+1, y, 1, height);
   u8g2.setFont(u8g2_font_7x13B_tf);
-  u8g2.drawStr(1, 24, "rich");
-  u8g2.drawStr(101, 24, "lean");
+  //u8g2.drawStr(1, 24, "rich");
+  //u8g2.drawStr(101, 24, "lean");
 }
 
 
@@ -414,7 +424,9 @@ void drawGraph(int x, int y, int len, int height)
   //drawHorizontalDottedLine(x, y + height, len);
 
   //var absMin = Math.abs(boostMin);
-  int absMin = abs(boostMin);
+  //int absMin = abs(boostMin);
+  int absMin = 0;
+  boostMax = 1100;
   int range = absMin + boostMax;
 
   // Draw 0 line
@@ -431,7 +443,7 @@ void drawGraph(int x, int y, int len, int height)
     int yPos = mapValueToYPos(valueY, range, y, height);
     int xPos = len - i;
     u8g2.drawPixel(xPos, yPos);
-    u8g2.drawPixel(xPos, yPos+1);
+    //u8g2.drawPixel(xPos, yPos+1);
     /*
     if (yPos < zeroYPos) 
     {

@@ -1,7 +1,7 @@
 #ifndef kalman_H
 #define kalman_H
 
-static const float R = 100; // noise covariance
+static const float R = 60; // noise covariance
 static const float H = 1; // measurement map scalar
 static float Q = 10; // initial estimated covariance
 static float P = 0; // initial error covariance (must be 0)
