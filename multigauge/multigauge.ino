@@ -12,9 +12,15 @@ U8G2_SSD1309_128X64_NONAME0_1_4W_SW_SPI u8g2(U8G2_R0, 13, 51, 10, 9, 8);    // 1
 // UNO/Mega: scl 13 green, sda 11, res 8 grey, dc 9 purple, cs 10 blue
 // mosi 51 yellow
 
+/*
+TODO:
+dynamic position of boost pressure 
+label y axis on plot (left side)
+figure out what to do with startup screen
+fix or remove vacuum animation
+*/
+
 int boostPeak;
-int boostMax;
-int boostMin;
 int screenMode = 2; // screen layout
 
 unsigned long startMillis;  // sensor timer
@@ -37,7 +43,7 @@ void setup(void)
   u8g2.begin();
   startMillis = millis(); // start timer
   startPeakMillis = millis();  // timer for peak value
-  Serial.begin(9600);
+  //Serial.begin(9600);
 }
 
 
@@ -140,6 +146,7 @@ void loop(void)
         char cstr[6];
         dtostrf((float)boostPressure / 1000, 1, 2, cstr);
         u8g2.drawStr(65, 32, cstr);
+        drawVerticalBar(123, 33, 5, 31, boostPressure);
         
 
         // draw max pressure
@@ -209,7 +216,6 @@ void draw()  // draw bitmap image
 } 
 
 
-
 float normaliseSensorData(int m)   //calculate sensorValue
 {
   //check: input voltage from arduino, raw value (engine off)
@@ -265,11 +271,6 @@ float readBoostData(void)
   float boostPressure = absolutePressure - 900;
 
   // Update max and min
-  if (boostPressure > boostMax) boostMax = boostPressure;
-  if (boostPressure < boostMin) boostMin = boostPressure;
-
-  
-  // Update max and min
   if (boostPressure > boostPeak)
   {
     boostPeak = boostPressure;
@@ -317,9 +318,8 @@ int getSensorHistory(int index)
   return sensorHistory[index];
 }
 
-
 // bar graphics (50% vacuum, 50% positive presure on a horizontal line)
-void drawBarGraph(int x, int y, int len, int height, int boostPressure) 
+void drawBarGraph(int x, int y, int len, int height, int val) 
 {
   int peakX = 1000;
   if(boostPeak > peakX) // if boostPressure exceeds preset value, change graphics to compensate
@@ -331,7 +331,7 @@ void drawBarGraph(int x, int y, int len, int height, int boostPressure)
   //int barLength = ((float)boostPressure / boostMax) * len;  // bar maxes out at previous peak boost value
   //normalisedValue = ((boostPressure + 1000) / 2100) * 1.1;
   //float barLen = (float(boostPressure) + 1000.0) / 1909.0;
-  float barLen = (float(boostPressure) + peakX) / 1909.0;
+  float barLen = (float(val) + peakX) / 1909.0;
   //Serial.println(barLen*len);
   float barLength = barLen * len;
   //int barLength = (float(boostPressure)/1100) * len;  // bar maxes out at 1.2 bar
@@ -344,20 +344,37 @@ void drawBarGraph(int x, int y, int len, int height, int boostPressure)
 }
 
 
+void drawVerticalBar(int x, int y, int width, int maxHeight, int val)
+{
+  int top = 1000;
+  float barValue = 0;
+  barValue = abs(val);
+  
+  if(val >= 0)
+  {
+    barValue = 0;
+  }
+
+  //float barHeight = (float(val) + peakX) / 1909.0;
+  Float barHeight = (barValue / 1000) * maxHeight;
+  u8g2.setDrawColor(2);
+  u8g2.drawBox(x, y, width, barHeight);
+}
+
+
 void drawAfrGraphics(int y, int height, float afr)
 {
   //int x = map(afr, 10, 20, 0, 128); 
   float afrNormal = (afr / 10) - 1; // maps afr to [0,1]
-  float x = afrNormal * 95; // multiply by horizontal screen length
+  float x = afrNormal * 93; // multiply by horizontal screen length
 
   u8g2.setDrawColor(2);
   u8g2.drawBox(x-1, y, 1, height);
   u8g2.drawBox(x+1, y, 1, height);
-  u8g2.setFont(u8g2_font_7x13B_tf);
+  //u8g2.setFont(u8g2_font_7x13B_tf);
   //u8g2.drawStr(1, 24, "rich");
   //u8g2.drawStr(101, 24, "lean");
 }
-
 
 // circular gauge (3 quarter)
 void DrawCircularGauge(int x, byte y, byte r, byte p, int value, int minVal, int maxVal) 
@@ -398,7 +415,6 @@ void DrawCircularGauge(int x, byte y, byte r, byte p, int value, int minVal, int
   }                 
 }
 
-
 // fancy line
 void drawGauge(int x, int y, int len, int maxHeight, int boostPressure) 
 {
@@ -415,7 +431,6 @@ void drawGauge(int x, int y, int len, int maxHeight, int boostPressure)
   }
 }
 
-
 // plotting
 void drawGraph(int x, int y, int len, int height) 
 {
@@ -426,7 +441,7 @@ void drawGraph(int x, int y, int len, int height)
   //var absMin = Math.abs(boostMin);
   //int absMin = abs(boostMin);
   int absMin = 0;
-  boostMax = 1100;
+  int boostMax = 1100;
   int range = absMin + boostMax;
 
   // Draw 0 line
@@ -458,7 +473,6 @@ void drawGraph(int x, int y, int len, int height)
     */
   }
 }
-
 
 // Maps a value to a y height
 int mapValueToYPos(int val, int range, int y, int height) 
