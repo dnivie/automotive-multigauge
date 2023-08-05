@@ -146,7 +146,7 @@ void loop(void)
         char cstr[6];
         dtostrf((float)boostPressure / 1000, 1, 2, cstr);
         u8g2.drawStr(65, 32, cstr);
-        drawVerticalBar(123, 33, 5, 31, boostPressure);
+        //drawVerticalBar(123, 33, 5, 31, boostPressure);
         
 
         // draw max pressure
@@ -166,7 +166,7 @@ void loop(void)
 
         // plotting
         //u8g2.drawBox(0, 34, 128, 1);
-        drawGraph(0, 33, 122, 31);
+        drawGraph(0, 33, 128, 31);
 
        } while ( u8g2.nextPage() );
        break;
@@ -356,7 +356,7 @@ void drawVerticalBar(int x, int y, int width, int maxHeight, int val)
   }
 
   //float barHeight = (float(val) + peakX) / 1909.0;
-  Float barHeight = (barValue / 1000) * maxHeight;
+  float barHeight = (barValue / 1000) * maxHeight;
   u8g2.setDrawColor(2);
   u8g2.drawBox(x, y, width, barHeight);
 }
