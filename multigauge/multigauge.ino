@@ -21,6 +21,8 @@ fix or remove vacuum animation
 */
 
 int boostPeak;
+int boostMax;
+int boostMin;
 int screenMode = 2; // screen layout
 
 unsigned long startMillis;  // sensor timer
@@ -157,7 +159,7 @@ void loop(void)
         //Draw afr
         //u8g2.setFont(u8g2_font_fub11_tf);
         u8g2.setFont(u8g2_font_mozart_nbp_h_all);
-        u8g2.drawStr(0, 32, "bar");
+        u8g2.drawStr(0, 32, "boost");
         dtostrf((float)afrNumber, 1, 2, cstr);
         u8g2.drawStr(97, 9, cstr);
         drawAfrGraphics(0, 10, afrNumber);
@@ -270,6 +272,10 @@ float readBoostData(void)
   float boostPressure = absolutePressure - 900;
 
   // Update max and min
+  if (boostPressure > boostMax) boostMax = boostPressure;
+  if (boostPressure < boostMin) boostMin = boostPressure;
+
+  // peak boost value timer
   if (boostPressure > boostPeak)
   {
     boostPeak = boostPressure;
@@ -437,28 +443,12 @@ void drawGraph(int x, int y, int len, int height)
   //drawHorizontalDottedLine(x, y, len);
   //drawHorizontalDottedLine(x, y + height, len);
 
-  //var absMin = Math.abs(boostMin);
-  //int absMin = abs(boostMin);
-  int absMin = 0;
-  //int boostMax = 1000;
-  int range = absMin + boostPeak;
-  if(boostPeak < 1000){
-    range = 1000;
-  }
+  int absMin = Math.abs(boostMin);
+  int range = absMin + boostMax;
 
   // Draw 0 line
-  //int zeroYPos = mapValueToYPos(absMin, range, y, height);
+  int zeroYPos = mapValueToYPos(absMin, range, y, height);
   drawHorizontalDottedLine(x, y, len);
-
-  // draw 0.5 bar mark on graph
-  // since y on the graph is set by boostPeak, the 0.5 bar mark needs to be dynamic
-  float graphMark;
-  int pixelValue; 
-
-  pixelVaule = (float(range) / 1000) / (64-y);
-  graphMark = 0.5 / pixelValue;
-  graphMark = 64 - graphMark;
-  u8g2.drawBox(0, graphMark, 4, 1);
 
   // Draw the graph line
   for (int i = 0; i < 128; i++) 
@@ -470,8 +460,8 @@ void drawGraph(int x, int y, int len, int height)
     int yPos = mapValueToYPos(valueY, range, y, height);
     int xPos = len - i;
     u8g2.drawPixel(xPos, yPos);
+    u8g2.drawPixel(xPos, yPos+1);
 
-    //u8g2.drawPixel(xPos, yPos+1);
     /*
     if (yPos < zeroYPos) 
     {
