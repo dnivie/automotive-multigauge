@@ -2,7 +2,6 @@
 #include <U8g2lib.h>
 #include <SPI.h>
 #include <Wire.h>
-#include "lion_pixel.h"
 #include "kalman.h"
 
 //U8G2_SH1106_128X64_NONAME_1_HW_I2C u8g2(U8G2_R2); //type of  screen
@@ -147,23 +146,28 @@ void loop(void)
         u8g2.setFont(u8g2_font_fub20_tf);
         char cstr[6];
         dtostrf((float)boostPressure / 1000, 1, 2, cstr);
-        u8g2.drawStr(65, 32, cstr);
+        int yPos = u8g2.getStrWidth(cstr);
+        //u8g2.drawStr(65, 32, cstr);
+        u8g2.drawStr(128 - yPos, 32, cstr);
         //drawVerticalBar(123, 33, 5, 31, boostPressure);
         
         // draw max pressure
-        //u8g2.setFont(u8g2_font_fub11_tf);
-        //dtostrf((float)boostPeak / 1000, 1, 2, cstr);
+        u8g2.setFont(u8g2_font_mozart_nbp_h_all);
+        dtostrf((float)boostPeak / 1000, 1, 2, cstr);
         //int yPos = u8g2.getStrWidth(cstr);
         //u8g2.drawStr(128 - yPos, 11, cstr);
+        u8g2.drawStr(25, 32, cstr);
 
         //Draw afr
         //u8g2.setFont(u8g2_font_fub11_tf);
         u8g2.setFont(u8g2_font_mozart_nbp_h_all);
-        u8g2.drawStr(0, 32, "boost");
+        u8g2.drawStr(0, 20, "boost");
+        u8g2.drawStr(0, 32, "max:");
         dtostrf((float)afrNumber, 1, 2, cstr);
         u8g2.drawStr(97, 9, cstr);
         drawAfrGraphics(0, 10, afrNumber);
-        u8g2.drawBox(0, 10, 128, 1);
+        //u8g2.drawBox(0, 10, 128, 1);
+        drawHorizontalDottedLine(0, 10, 128);
 
         // plotting
         //u8g2.drawBox(0, 34, 128, 1);
@@ -210,12 +214,12 @@ void loop(void)
   }
 }
 
-
+/*
 void draw()  // draw bitmap image
 {
   u8g2.drawBitmap(0, 0, 16, 64, lion_pixel);
 } 
-
+*/
 
 float normaliseSensorData(int m)   //calculate sensorValue
 {
@@ -443,7 +447,12 @@ void drawGraph(int x, int y, int len, int height)
   //drawHorizontalDottedLine(x, y, len);
   //drawHorizontalDottedLine(x, y + height, len);
 
-  int absMin = Math.abs(boostMin);
+  int absMin = abs(boostMin);
+
+  if(boostMax < 500)
+  {
+    boostMax = 500;
+  }
   int range = absMin + boostMax;
 
   // Draw 0 line
