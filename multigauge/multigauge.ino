@@ -2,7 +2,7 @@
 #include <U8g2lib.h>
 #include <SPI.h>
 #include <Wire.h>
-#include "kalman.h"
+#include "Kalman.h"
 
 //U8G2_SH1106_128X64_NONAME_1_HW_I2C u8g2(U8G2_R2); //type of  screen
 //U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);  // 1.3" screen
@@ -38,12 +38,16 @@ const int sensorHistoryLength = 128;  // horizontal length of screen is 128 pixe
 int sensorHistory[sensorHistoryLength];
 int sensorHistoryPos = sensorHistoryLength - 1;
 
+Kalman kf;
+float noiseCovariance = 60;
+
 
 void setup(void) 
 {
   u8g2.begin();
   startMillis = millis(); // start timer
   startPeakMillis = millis();  // timer for peak value
+  kf.init(noiseCovariance);
   //Serial.begin(9600);
 }
 
@@ -269,7 +273,7 @@ float readBoostData(void)
   
   float absolutePressure = normaliseSensorData(analogRead(A0));
   
-  absolutePressure = kalmanFilter(absolutePressure); // filter measurement 
+  absolutePressure = kf.filter(absolutePressure); // filter measurement 
   // Subtract 14.7psi/1bar (pressure at sea level)
   
   // tune this value until sensor shows 0 with the engine off:
