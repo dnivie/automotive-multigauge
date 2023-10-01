@@ -11,9 +11,9 @@ U8G2_SSD1309_128X64_NONAME0_1_4W_SW_SPI u8g2(U8G2_R0, 13, 51, 10, 9, 8);    // 1
 // UNO/Mega: scl 13 green, sda 11, res 8 grey, dc 9 purple, cs 10 blue, mosi 51 yellow
 
 
-int boostMax;
-int boostMin;
-int screenMode = 2; // screen layout (see switch case below)
+uint16_t boostMax;
+uint16_t boostMin;
+uint8_t screenMode = 2; // screen layout (see switch case below)
 
 unsigned long startMillis;  // sensor timer
 unsigned long currentMillis;
@@ -26,8 +26,8 @@ const unsigned long peakPeriod = 20000; // peakBoost will reset after 20 sec
 const unsigned long startUpPeriod = 1500; // startup animation 1.5 sec
 
 const int sensorHistoryLength = 128;  // horizontal length of screen is 128 pixels
-int sensorHistory[sensorHistoryLength];
-int sensorHistoryPos = sensorHistoryLength - 1;
+uint16_t sensorHistory[sensorHistoryLength];
+uint16_t sensorHistoryPos = sensorHistoryLength - 1;
 
 Kalman kf;
 Sensor sensor;
@@ -46,14 +46,18 @@ void setup(void)
 
 void loop(void) 
 {  
-  float boostPressure = 0;
-  float afrNumber = 0;
+  float boostPressure;
+  float afr;
   currentMillis = millis();
   currentPeakMillis = millis();
-  if (currentMillis - startMillis >= period)   // read sensors
-  {
+  if (currentMillis - startMillis >= period)
+  { 
+    // read sensors and filter:
     boostPressure = sensor.readBoost();
-    afrNumber = sensor.readAfr();
+    boostPressure = kf.filter(boostPressure);
+
+    afr = sensor.readAfr();
+    afr = kf.filter(afr);
     
     // Update max and min
     if (boostPressure > boostMax) boostMax = boostPressure;
@@ -85,7 +89,7 @@ void loop(void)
         // Draw peak pressure
         u8g2.setFont(u8g2_font_fub11_tf);
         dtostrf((float)boostMax / 1000, 1, 2, cstr);
-        int yPos = u8g2.getStrWidth(cstr);
+        uint16_t yPos = u8g2.getStrWidth(cstr);
         u8g2.drawStr(128 - yPos, 64, cstr);
 
         //writing
@@ -97,7 +101,7 @@ void loop(void)
 
         //Draw afr
         u8g2.setFont(u8g2_font_fub11_tf);
-        dtostrf((float)afrNumber, 1, 2, cstr);
+        dtostrf((float)afr, 1, 2, cstr);
         u8g2.drawStr(0, 14, cstr);
 
         u8g2.setDrawColor(2);
@@ -123,7 +127,7 @@ void loop(void)
         // Draw peak pressure
         u8g2.setFont(u8g2_font_fub11_tf);
         dtostrf((float)boostMax / 1000, 1, 2, cstr);
-        int yPos = u8g2.getStrWidth(cstr);
+        uint16_t yPos = u8g2.getStrWidth(cstr);
         u8g2.drawStr(95, 54, cstr);
         
         //writing
@@ -131,10 +135,10 @@ void loop(void)
         u8g2.setFont(u8g2_font_fub11_tf);
 
         //Draw afr
-        dtostrf((float)afrNumber, 1, 2, cstr);
+        dtostrf((float)afr, 1, 2, cstr);
         u8g2.drawStr(43, 24, cstr);
         
-        drawAfrGraphics(0, 10, afrNumber);
+        drawAfrGraphics(0, 10, afr);
         u8g2.drawBox(0, 10, 128, 1);
         //Serial.println(boostPressure);
         u8g2.setDrawColor(2);
@@ -153,7 +157,7 @@ void loop(void)
         u8g2.setFont(u8g2_font_fub20_tf);
         char cstr[6];
         dtostrf((float)boostPressure / 1000, 1, 2, cstr);
-        int yPos = u8g2.getStrWidth(cstr);
+        uint16_t yPos = u8g2.getStrWidth(cstr);
         //u8g2.drawStr(65, 32, cstr);
         u8g2.drawStr(128 - yPos, 32, cstr);
         //drawVerticalBar(123, 33, 5, 31, boostPressure);
@@ -170,9 +174,9 @@ void loop(void)
         u8g2.setFont(u8g2_font_mozart_nbp_h_all);
         u8g2.drawStr(0, 20, "boost");
         u8g2.drawStr(0, 32, "max:");
-        dtostrf((float)afrNumber, 1, 2, cstr);
+        dtostrf((float)afr, 1, 2, cstr);
         u8g2.drawStr(97, 9, cstr);
-        drawAfrGraphics(0, 10, afrNumber);
+        drawAfrGraphics(0, 10, afr);
         //u8g2.drawBox(0, 10, 128, 1);
         drawHorizontalDottedLine(0, 10, 128);
 
