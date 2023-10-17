@@ -6,8 +6,8 @@
 class Sensor
 {
   private:
-    float calculateBoost(int boostPressure);
-    float calculateAfr(int afr);
+    float calculateBoost(uint16_t boostPressure);
+    float calculateAfr(uint16_t afr);
   public:
     Sensor();
     float readBoost(void);

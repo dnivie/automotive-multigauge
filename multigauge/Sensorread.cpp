@@ -13,7 +13,7 @@ float Sensor::readAfr(void)
 }
 
 
-float Sensor::calculateAfr(int n)
+float Sensor::calculateAfr(uint16_t n)
 {
   // 10-20afr
   return ((n * (5.0/1023.0)) * 2) + 10;
@@ -30,7 +30,7 @@ float Sensor::readBoost(void)
   return boostPressure;
 }
 
-float Sensor::calculateBoost(int m)
+float Sensor::calculateBoost(uint16_t m)
 {
   /*
   Scale the sensor reading into range
