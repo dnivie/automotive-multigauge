@@ -5,10 +5,9 @@
 
 class Sensor
 {
-  private:
+  public:
     float calculateBoost(uint16_t boostPressure);
     float calculateAfr(uint16_t afr);
-  public:
     Sensor();
     float readBoost(void);
     float readAfr(void);

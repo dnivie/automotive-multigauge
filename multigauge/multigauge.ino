@@ -19,8 +19,8 @@ uint8_t screenMode = 3; // screen layout (see switch case below)
 unsigned long startMillis;  // sensor timer
 unsigned long currentMillis;
 
-unsigned long startPeakMillis; // turbo peak value timer
-unsigned long currentPeakMillis;
+unsigned int startPeakMillis; // turbo peak value timer
+unsigned int currentPeakMillis;
 
 const uint8_t period = 50;  // read sensor interval 50 ms
 const uint16_t peakPeriod = 20000; // peakBoost will reset after 20 sec
