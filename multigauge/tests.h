@@ -15,22 +15,22 @@ test(calculateAfr) {
 test(calculateBoost) {
   // sensor reading of 500 equals to 0.95279 bar
   Sensor sensor;
-  assertMoreOrEqual(sensor.calculateBoost(500)/1000, 0.95);
+  assertMoreOrEqual(sensor.calculateBoost(500), 950);
 }
 
 test(readAfr) {
-  // should be able to read a value above minimum, and it should be somewhat steady
   Sensor sensor;
-  //sensor.readAfr(); // why does uncommenting this use less memory?
+  sensor.readAfr();
   assertMoreOrEqual(sensor.readAfr(), 11);
 }
-/*
+
 test(readBoost) {
-  // should be able to read a value, and it should be somewhat steady
-  uint8_t analogReading = 500;
-  asserTrue(x, 1);
+  // should be able to read a value above minimum, and it should be somewhat steady
+  Sensor sensor;
+  sensor.readBoost(); // why does uncommenting this use less memory?
+  assertMoreOrEqual(sensor.readBoost(), -950);
 }
-*/
+
 test(kalmanfilter) { 
   // value should be smoothed by some margin
   pass(); 

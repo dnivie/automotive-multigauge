@@ -5,6 +5,7 @@
 #include "Kalman.h"
 #include "Sensorread.h"
 #include "tests.h"
+#include "plotting.h"
 
 //U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);  // 1.3" screen
 //U8G2_SSD1309_128X64_NONAME0_1_4W_SW_SPI u8g2(U8G2_R0, 13, 11, 10, 9, 8);    // 2.4" screen
@@ -12,8 +13,8 @@ U8G2_SSD1309_128X64_NONAME0_1_4W_SW_SPI u8g2(U8G2_R0, 13, 51, 10, 9, 8);    // 1
 // UNO/Mega: scl 13 green, sda 11, res 8 grey, dc 9 purple, cs 10 blue, mosi 51 yellow
 
 
-uint16_t boostMax;
-int16_t boostMin;
+//uint16_t boostMax;
+//int16_t boostMin;
 uint8_t screenMode = 3; // screen layout (see switch case below)
 
 unsigned long startMillis;  // sensor timer
@@ -26,23 +27,24 @@ const uint8_t period = 50;  // read sensor interval 50 ms
 const uint16_t peakPeriod = 20000; // peakBoost will reset after 20 sec
 const uint16_t startUpPeriod = 1500; // startup animation 1.5 sec
 
-const uint8_t sensorHistoryLength = 128;  // horizontal length of screen is 128 pixels
-uint8_t sensorHistory[sensorHistoryLength];
-uint8_t sensorHistoryPos = sensorHistoryLength - 1;
+//uint8_t sensorHistory[sensorHistoryLength];
+//uint8_t sensorHistoryPos = sensorHistoryLength - 1;
+uint8_t noiseCovariance = 60; // Kalman filtering
 
 Kalman kf;
 Sensor sensor;
-uint8_t noiseCovariance = 60;
+Plotting plot;
 
 
 void setup(void) 
 {
-  u8g2.begin();
+  //u8g2.begin();
   delay(1000);
   Serial.begin(9600);
   startMillis = millis(); // start timer
   startPeakMillis = millis();  // timer for peak value
   kf.init(noiseCovariance);
+  plot.init();
 }
 
 
@@ -50,6 +52,7 @@ void loop(void)
 {  
   float boostPressure;
   float afr;
+  //int16_t maxBoost;
   currentMillis = millis();
   currentPeakMillis = millis();
   if (currentMillis - startMillis >= period)
@@ -62,16 +65,16 @@ void loop(void)
     afr = kf.filter(afr);
     
     // Update max and min
-    if (boostPressure > boostMax) boostMax = boostPressure;
-    if (boostPressure < boostMin) boostMin = boostPressure;
+    //if (boostPressure > boostMax) boostMax = boostPressure;
+    //if (boostPressure < boostMin) boostMin = boostPressure;
 
-    if (currentPeakMillis - startPeakMillis > peakPeriod) //reset peakValue;
+    if (currentPeakMillis - startPeakMillis > peakPeriod) // reset peakValue;
     {
-      boostMax = 0;
+      plot.resetBoostMax();
       startPeakMillis = currentPeakMillis;
     }
     // Log the history:
-    addSensorHistory(boostPressure);
+    plot.addSensorHistory(boostPressure);
 
     startMillis = currentMillis;
   }
@@ -90,7 +93,7 @@ void loop(void)
 
         // Draw peak pressure
         u8g2.setFont(u8g2_font_fub11_tf);
-        dtostrf((float)boostMax / 1000, 1, 2, cstr);
+        dtostrf((float)plot.getBoostMax() / 1000, 1, 2, cstr);
         uint16_t yPos = u8g2.getStrWidth(cstr);
         u8g2.drawStr(128 - yPos, 64, cstr);
 
@@ -128,7 +131,7 @@ void loop(void)
 
         // Draw peak pressure
         u8g2.setFont(u8g2_font_fub11_tf);
-        dtostrf((float)boostMax / 1000, 1, 2, cstr);
+        dtostrf((float)plot.getBoostMax() / 1000, 1, 2, cstr);
         uint16_t yPos = u8g2.getStrWidth(cstr);
         u8g2.drawStr(95, 54, cstr);
         
@@ -146,7 +149,6 @@ void loop(void)
         u8g2.setDrawColor(2);
         u8g2.drawBox(0, 25, 128, 1);
         drawBarGraph(0, 57, 128, 7, boostPressure);
-        //drawGauge(0, 66, 128, 12, boostPressure);
 
       } while ( u8g2.nextPage() );
       break;
@@ -166,7 +168,7 @@ void loop(void)
         
         // draw max pressure
         u8g2.setFont(u8g2_font_mozart_nbp_h_all);
-        dtostrf((float)boostMax / 1000, 1, 2, cstr);
+        dtostrf((float)plot.getBoostMax() / 1000, 1, 2, cstr);
         //int yPos = u8g2.getStrWidth(cstr);
         //u8g2.drawStr(128 - yPos, 11, cstr);
         u8g2.drawStr(25, 32, cstr);
@@ -180,11 +182,11 @@ void loop(void)
         u8g2.drawStr(97, 9, cstr);
         drawAfrGraphics(0, 10, afr);
         //u8g2.drawBox(0, 10, 128, 1);
-        drawHorizontalDottedLine(0, 10, 128);
+        plot.drawHorizontalDotLine(0, 10, 128);
 
         // plotting
         //u8g2.drawBox(0, 34, 128, 1);
-        drawGraph(0, 33, 128, 31);
+        plot.drawGraph(0, 33, 128, 31);
 
        } while ( u8g2.nextPage() );
        break;
@@ -196,7 +198,7 @@ void loop(void)
         //char cstr[6];
         //u8g2.setFont(u8g2_font_mozart_nbp_h_all);
         //u8g2.drawStr(13, 50, "$ bonsoir, Elliot");
-        unittest();
+        unittest(); // run tests
 
       if (currentMillis - startPeakMillis >= startUpPeriod)
       {
@@ -208,7 +210,7 @@ void loop(void)
   }
 }
 
-
+/*
 void addSensorHistory(int val) 
 {
   sensorHistory[sensorHistoryPos] = val;
@@ -223,14 +225,15 @@ int getSensorHistory(int index)
   if (index >= sensorHistoryLength) index = index - sensorHistoryLength;
   return sensorHistory[index];
 }
+*/
 
 // bar graphics (50% vacuum, 50% positive presure on a horizontal line)
 void drawBarGraph(int x, int y, int len, int height, int val) 
 {
   uint16_t peakX = 1000;
-  if(boostMax > peakX) // if boostPressure exceeds preset value, change graphics to compensate
+  if(plot.getBoostMax() > peakX) // if boostPressure exceeds preset value, change graphics to compensate
   {
-    peakX = boostMax;
+    peakX = plot.getBoostMax();
   }
   // Draw the pressure bar behind the graph
   float barLen = (float(val) + peakX) / 1909.0;
@@ -263,7 +266,6 @@ void drawVerticalBar(uint8_t x, uint8_t y, uint8_t width, uint8_t maxHeight, uin
 
 void drawAfrGraphics(uint8_t y, uint8_t height, float afr)
 {
-  //int x = map(afr, 10, 20, 0, 128); 
   float afrNormal = (afr / 10) - 1; // maps afr to [0,1]
   float x = afrNormal * 93; // multiply by horizontal screen length
 
@@ -292,12 +294,10 @@ void drawGauge(uint8_t x, uint8_t y, uint8_t len, uint8_t maxHeight, uint16_t bo
   }
 }
 
+/*
 // plotting
 void drawGraph(uint8_t x, uint8_t y, uint8_t len, uint8_t height) 
 {
-  // Draw the lines
-  //drawHorizontalDottedLine(x, y, len);
-  //drawHorizontalDottedLine(x, y + height, len);
   uint16_t absMin = abs(boostMin);
 
   if(boostMax < 500)
@@ -322,7 +322,7 @@ void drawGraph(uint8_t x, uint8_t y, uint8_t len, uint8_t height)
     u8g2.drawPixel(xPos, yPos);
     u8g2.drawPixel(xPos, yPos+1);
 
-    /*
+    
     if (yPos < zeroYPos) 
     {
       // Point is above zero line, fill in space under graph
@@ -333,9 +333,10 @@ void drawGraph(uint8_t x, uint8_t y, uint8_t len, uint8_t height)
       // Point is below zero line, draw graph line without filling in
       u8g2.drawPixel(xPos, yPos);
     }
-    */
+    
   }
 }
+
 
 // Maps a value to a y height
 uint8_t mapValueToYPos(uint8_t val, uint8_t range, uint8_t y, uint8_t height) 
@@ -352,3 +353,5 @@ void drawHorizontalDottedLine(uint8_t x, uint8_t y, uint8_t len)
     if (!(i % 4)) u8g2.drawPixel(x + i, y);
   }
 }
+
+*/
