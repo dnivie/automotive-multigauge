@@ -11,7 +11,6 @@
 ```cpp
 float normaliseSensorData(int m)   //calculate sensorValue
 {
-  //check: input voltage from arduino, raw value (engine off)
   /*
     Scale the sensor reading into range
     m = measurement to be scaled
@@ -44,19 +43,19 @@ float normaliseSensorData(int m)   //calculate sensorValue
 - Arduino Mega or equivalent microcontroller. The code is currently using 31902 bytes, which is 98% of the flash memory on a Arduino Uno/Micro. So you could technically run it on an Uno/Micro.
 
 ### Code structure:
-- main.ino
+- multigauge.ino (main file):
   - initializes screen, timers, filtering, sensor reads
-  - main loop
+  - main loop:
     - reads sensors
     - filters input
     - stores sensor values
     - creates graphics on screen
     - reset timers
-- kalman.cpp
+- kalman.cpp:
   - filtering
-- graphics.cpp
+- graphics.cpp:
   - functions for different screen graphics
-- sensorread.cpp
+- sensorread.cpp:
   - sensor related functions
-- tests.h
+- tests.h:
   - unit testing
