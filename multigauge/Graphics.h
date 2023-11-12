@@ -1,9 +1,9 @@
-#ifndef PLOTTING_H
-#define PLOTTING_H
+#ifndef GRAPHICS_H
+#define GRAPHICS_H
 
 #include "Arduino.h"
 
-class Plotting
+class Graphics
 {
     public:
         uint8_t mapValToYpos(uint8_t val, uint8_t range, uint8_t y, uint8_t height);
@@ -20,6 +20,15 @@ class Plotting
         uint16_t getBoostMax();
         int16_t getBoostMin();
         void resetBoostMax();
+        void drawGauge(uint8_t x, uint8_t y, uint8_t len, uint8_t maxHeight, uint16_t boostPressure);
+        void drawAfrGraphics(uint8_t y, uint8_t height, float afr);
+        void drawVerticalBar(uint8_t x, uint8_t y, uint8_t width, uint8_t maxHeight, uint16_t val);
+        void drawBarGraph(int x, int y, int len, int height, int val);
+
+        void screenMode0(); // startup screen
+        void screenMode1(float val0, float val1); // curved line graphics
+        void screenMode2(float val0, float val1); // horizontal line graphics
+        void screenMode3(float val0, float val1); // plotted boost curve
 };
 
 #endif
