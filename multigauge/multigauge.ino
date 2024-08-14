@@ -4,7 +4,7 @@
 #include <Wire.h>
 #include "Kalman.h"
 #include "Sensorread.h"
-#include "tests.h"
+//#include "tests.h"
 #include "Graphics.h"
 
 
@@ -72,7 +72,7 @@ void loop(void)
     case 0:
       // startup screen
       screen.screenMode0();
-      unittest();
+      //unittest();
 
       if (currentMillis - startPeakMillis >= startUpPeriod)
       {
