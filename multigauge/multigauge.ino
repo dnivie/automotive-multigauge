@@ -41,8 +41,10 @@ void loop(void)
 {  
   float boostPressure;
   float afr;
+  int8_t waterTemp;
   currentMillis = millis();
   currentPeakMillis = millis();
+
   if (currentMillis - startMillis >= period)
   { 
     // read sensors and filter:
@@ -51,6 +53,9 @@ void loop(void)
 
     afr = sensor.readAfr();
     afr = kf.filter(afr);
+
+    waterTemp = sensor.readTemp();
+    waterTemp = kf.filter(waterTemp);
     
     // Update max and min
     //if (boostPressure > boostMax) boostMax = boostPressure;
@@ -92,8 +97,11 @@ void loop(void)
       break;
 
     case 3:
-      // startup screen
       screen.screenMode3(boostPressure, afr);
+      break;
+
+    case 4:
+      screen.screenMode4(boostPressure, afr, waterTemp);
       break;
     
   }

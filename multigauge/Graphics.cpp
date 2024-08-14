@@ -281,3 +281,24 @@ void Graphics::screenMode3(float boostPressure, float afr)
 
     } while ( u8g2.nextPage() );
 }
+
+void Graphics::screenMode4(float boostPressure, float afr, int8_t temp)
+{
+    u8g2.firstPage();
+    do
+    {
+        u8g2.setFont(u8g2_font_fub20_tf);
+        char cstr[6];
+        dtostrf((float)boostPressure / 1000, 1, 2, cstr);
+        uint16_t yPos = u8g2.getStrWidth(cstr);
+        u8g2.drawStr(128 - yPos, 32, cstr);
+
+        dtostrf((float)afr, 1, 2, cstr);
+        u8g2.drawStr(97, 9, cstr);
+
+        dtostrf((float)temp, 1, 2, cstr);
+        u8g2.drawStr(97, 9, cstr);
+
+    } while ( u8g2.nextPage() );
+    
+}
