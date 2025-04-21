@@ -17,7 +17,7 @@ class Graphics
         void screenMode1(float val0, float val1); // curved line graphics
         void screenMode2(float val0, float val1); // horizontal line graphics
         void screenMode3(float val0, float val1); // plotted boost curve
-        void screenMode4(float val0, float val1, int8_t val2); // boost, afr and waterTemp
+        void screenMode4(float val0, float val1, float val2); // boost, afr and waterTemp
     
     private:
         void drawGraph(uint8_t x, uint8_t y, uint8_t len, uint8_t height);

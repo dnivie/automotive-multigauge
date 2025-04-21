@@ -282,22 +282,52 @@ void Graphics::screenMode3(float boostPressure, float afr)
     } while ( u8g2.nextPage() );
 }
 
-void Graphics::screenMode4(float boostPressure, float afr, int8_t temp)
+void Graphics::screenMode4(float boostPressure, float afr, float temp)
 {
     u8g2.firstPage();
     do
     {
+        /*
+        u8g2.setFont(u8g2_font_fub20_tf);
+        char cstr[6];
+        dtostrf((float)boostPressure / 1000, 1, 2, cstr);
+        uint16_t yPos = u8g2.getStrWidth(cstr);
+        u8g2.drawStr(128 - yPos, 4, cstr);
+
+        dtostrf((float)afr, 1, 2, cstr);
+        u8g2.drawStr(5, 29, cstr);
+
+        dtostrf((float)temp, 1, 2, cstr);
+        u8g2.drawStr(5, 44, cstr);
+        */
+
+
         u8g2.setFont(u8g2_font_fub20_tf);
         char cstr[6];
         dtostrf((float)boostPressure / 1000, 1, 2, cstr);
         uint16_t yPos = u8g2.getStrWidth(cstr);
         u8g2.drawStr(128 - yPos, 32, cstr);
-
+        // draw max pressure
+        u8g2.setFont(u8g2_font_mozart_nbp_h_all);
+        dtostrf((float)Graphics::getBoostMax() / 1000, 1, 2, cstr);
+        u8g2.drawStr(25, 32, cstr);
+        u8g2.drawStr(0, 20, "boost");
+        u8g2.drawStr(0, 32, "max:");
+        
+        // draw afr
+        //u8g2.setFont(u8g2_font_mozart_nbp_h_all);
         dtostrf((float)afr, 1, 2, cstr);
-        u8g2.drawStr(97, 9, cstr);
+        //u8g2.drawStr(97, 9, cstr);
+	u8g2.drawStr(0, 40, cstr);
+        //Graphics::drawAfrGraphics(0, 10, afr);
 
+        // draw temp
         dtostrf((float)temp, 1, 2, cstr);
-        u8g2.drawStr(97, 9, cstr);
+        u8g2.drawStr(0, 50, cstr);
+        
+        // plotting
+        //Graphics::drawHorizontalDotLine(0, 10, 128);
+        //Graphics::drawGraph(0, 33, 128, 31);
 
     } while ( u8g2.nextPage() );
     

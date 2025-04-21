@@ -48,7 +48,8 @@ float Sensor::calculateAfr(uint16_t n)
 
 float Sensor::calculateTemp(uint16_t t)
 {
-  float vin = t * (5.0/1023); // convert from 10bit to 5V range
+  //float vin = t * (5.0/1023); // convert from 10bit to 5V range
+  
   // skalerer 10bit til en verdi mellom -20 og 130
   // rmin = 0
   // rmax = 1023
@@ -70,6 +71,12 @@ float Sensor::calculateTemp(uint16_t t)
   input = (1023 / input) - 1
   thermistor resistance = 2800ohm / input
   https://learn.adafruit.com/thermistor/using-a-thermistor
+  
+  seriesResistor = 2800
+  thermistorNominal = 2800, resistance at 20-25C
+  temperatureNominal = 20
+  bCoefficient = 3950
+  
   */
   // converting to resistance:
 

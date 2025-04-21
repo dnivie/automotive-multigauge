@@ -1,19 +1,20 @@
 #ifndef KALMAN_H
 #define KALMAN_H
+#include <Arduino.h>
 
 
 class Kalman
 {
   private:
-    float uHat = 0; // initial estimated state
     float H = 1; // measurement map scalar
-    float Q = 10; // initial estimated covariance
     float P = 0; // initial error covariance (must be 0)
-    float K = 0; // initial kalman gain
+    float K = 1; // initial kalman gain
 
   public:
-    float R = 0;
-    void init(float R);
+    uint8_t R = 0; // measurement noise coveriance, represents uncertainty or inaccuracy in the sensor, higher R means the measurement is less trustworthy.
+    float Q = 1; // initial estimated covariance, process noise covariance, higher Q means system is more dynamic/less predictable. Filter will rely more on the measurement
+    float uHat = 0; // initial estimated state
+    void init(uint8_t R, float Q, float uHat);
 
     float filter(float U);
 };
