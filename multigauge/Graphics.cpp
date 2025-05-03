@@ -6,6 +6,7 @@ uint16_t boostMax = 0;
 int16_t boostMin = 0;
 const uint8_t sensorHistoryLength = 128;
 uint8_t sensorHistory[sensorHistoryLength];
+uint8_t afrSensorHistory[sensorHistoryLength];
 uint8_t sensorHistoryPos = sensorHistoryLength - 1;
 
 //U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);  // 1.3" screen
@@ -13,10 +14,12 @@ uint8_t sensorHistoryPos = sensorHistoryLength - 1;
 U8G2_SSD1309_128X64_NONAME0_1_4W_SW_SPI u8g2(U8G2_R0, 13, 51, 10, 9, 8);    // 1.5" screen
 // UNO/Mega: scl 13 green, sda 11, res 8 grey, dc 9 purple, cs 10 blue, mosi 51 yellow
 
+
 void Graphics::init()
 {
     u8g2.begin();
 }
+
 
 void Graphics::drawHorizontalDotLine(uint8_t x, uint8_t y, uint8_t len) 
 {
@@ -25,6 +28,7 @@ void Graphics::drawHorizontalDotLine(uint8_t x, uint8_t y, uint8_t len)
         if (!(i % 4)) u8g2.drawPixel(x + i, y);
     }
 }
+
 
 void Graphics::drawGraph(uint8_t x, uint8_t y, uint8_t len, uint8_t height)
 {
@@ -63,11 +67,36 @@ void Graphics::drawGraph(uint8_t x, uint8_t y, uint8_t len, uint8_t height)
     }
 }
 
+
+void Graphics::drawAfrGraph(uint8_t x, uint8_t y, uint8_t len, uint8_t height)
+{
+    const uint8_t afrMin = 10;    
+    const uint8_t afrMax = 20;
+
+    uint8_t range = 10; //afrMin + afrMax; 
+
+    //Graphics::drawHorizontalDotLine(x, y, len);    
+    // Draw the graph line
+    for (uint8_t i = 0; i < 128; i++) 
+    {
+        // Scale the values
+        uint8_t valueY = Graphics::getAfrSensorHistory(i) + afrMin;
+    
+        // Calculate the coordinants
+        uint8_t yPos = Graphics::mapValToYpos(valueY, range, y, height);
+        uint8_t xPos = len - i;
+        u8g2.drawPixel(xPos, yPos);
+        u8g2.drawPixel(xPos, yPos+1); 
+    }
+}
+
+
 uint8_t Graphics::mapValToYpos(uint8_t val, uint8_t range, uint8_t y, uint8_t height)
 {
     float valueY = ((float)val / range) * height;
     return y + height - (int)valueY;
 }
+
 
 int16_t Graphics::getSensorHistory(uint8_t index)
 {
@@ -75,6 +104,7 @@ int16_t Graphics::getSensorHistory(uint8_t index)
     if (index >= sensorHistoryLength) index = index - sensorHistoryLength;
     return sensorHistory[index];
 }
+
 
 void Graphics::addSensorHistory(int16_t val)
 {
@@ -84,6 +114,22 @@ void Graphics::addSensorHistory(int16_t val)
 
     if (val > boostMax) boostMax = val;
     if (val < boostMin) boostMin = val;
+}
+
+
+uint8_t Graphics::getAfrSensorHistory(uint8_t index)
+{
+    index += sensorHistoryPos;
+    if (index >= sensorHistoryLength) index = index - sensorHistoryLength;
+    return afrSensorHistory[index];
+}
+
+
+void Graphics::addAfrHistory(uint8_t val)
+{
+    afrSensorHistory[sensorHistoryPos] = val;
+    sensorHistoryPos--;
+    if (sensorHistoryPos < 0) sensorHistoryPos = sensorHistoryLength - 1;
 }
 
 
@@ -261,26 +307,31 @@ void Graphics::screenMode3(float boostPressure, float afr)
         char cstr[6];
         dtostrf((float)boostPressure / 1000, 1, 2, cstr);
         uint16_t yPos = u8g2.getStrWidth(cstr);
-        u8g2.drawStr(128 - yPos, 32, cstr);
+        u8g2.drawStr(128 - yPos, 63, cstr);
+
         //drawVerticalBar(123, 33, 5, 31, boostPressure);
         // draw max pressure
-        u8g2.setFont(u8g2_font_mozart_nbp_h_all);
-        dtostrf((float)Graphics::getBoostMax() / 1000, 1, 2, cstr);
-        u8g2.drawStr(25, 32, cstr);
+        //u8g2.setFont(u8g2_font_mozart_nbp_h_all);
+        //dtostrf((float)Graphics::getBoostMax() / 1000, 1, 2, cstr);
+        //u8g2.drawStr(25, 32, cstr);
         //Draw afr
-        u8g2.setFont(u8g2_font_mozart_nbp_h_all);
-        u8g2.drawStr(0, 20, "boost");
-        u8g2.drawStr(0, 32, "max:");
-        dtostrf((float)afr, 1, 2, cstr);
-        u8g2.drawStr(97, 9, cstr);
-        Graphics::drawAfrGraphics(0, 10, afr);
+        //u8g2.setFont(u8g2_font_mozart_nbp_h_all);
+        //u8g2.drawStr(0, 20, "boost");
+        //u8g2.drawStr(0, 32, "max:");
+        dtostrf((float)afr, 1, 1, cstr);
+        yPos = u8g2.getStrWidth(cstr);
+        u8g2.drawStr(128 - yPos, 33, cstr);
+        //Graphics::drawAfrGraphics(0, 10, afr);
         //u8g2.drawBox(0, 10, 128, 1);
-        Graphics::drawHorizontalDotLine(0, 10, 128);
+        //Graphics::drawHorizontalDotLine(0, 10, 128);
         // plotting
-        Graphics::drawGraph(0, 33, 128, 31);
+        
+        Graphics::drawGraph(0, 33, 128, 31); // x, y, len, height
+        Graphics::drawAfrGraph(0, 0, 128, 31);
 
     } while ( u8g2.nextPage() );
 }
+
 
 void Graphics::screenMode4(float boostPressure, float afr, float temp)
 {

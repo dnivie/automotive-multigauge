@@ -9,6 +9,8 @@ class Graphics
         uint8_t mapValToYpos(uint8_t val, uint8_t range, uint8_t y, uint8_t height);
         int16_t getSensorHistory(uint8_t index);
         void addSensorHistory(int16_t val);
+        uint8_t getAfrSensorHistory(uint8_t index);
+        void addAfrHistory(uint8_t val);
         void init();
         uint16_t getBoostMax();
         int16_t getBoostMin();
@@ -21,6 +23,7 @@ class Graphics
     
     private:
         void drawGraph(uint8_t x, uint8_t y, uint8_t len, uint8_t height);
+        void drawAfrGraph(uint8_t x, uint8_t y, uint8_t len, uint8_t height);
         void drawHorizontalDotLine(uint8_t x, uint8_t y, uint8_t len);
         void drawGauge(uint8_t x, uint8_t y, uint8_t len, uint8_t maxHeight, uint16_t boostPressure);
         void drawAfrGraphics(uint8_t y, uint8_t height, float afr);
