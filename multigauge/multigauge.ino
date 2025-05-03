@@ -19,11 +19,11 @@ const uint8_t period = 50;  // read sensor interval in ms
 const uint16_t peakPeriod = 20000; // peakBoost will reset after 20 sec
 const uint16_t startUpPeriod = 1500; // startup screen duration 1.5 sec
 
-uint8_t boostNoiseCovariance = 0.1; // R
-uint8_t afrNoiseCovariance = 0.5; // R
+float boostNoiseCovariance = 0.1; // R
+float afrNoiseCovariance = 0.5; // R
 float initEstimateAfr = 15.0; // uHat
 float initEstimateBoost = 0.0; // uHat
-float initEstimateCovAFR = 2; // Q
+float initEstimateCovAFR = 2.0; // Q
 float initEstimateCovBoost = 0.3; // Q
 
 
@@ -39,8 +39,8 @@ void setup(void)
   Serial.begin(9600);
   startMillis = millis(); // start timer
   startPeakMillis = millis();  // timer for peak value
-  kfAFR.init(noiseCovariance, initEstimateCovBoost, initEstimateAfr); // R, Q, uHat
-  kfBoost.init(noiseCovariance, initEstimateCovBoost, initEstimateBoost);
+  kfAFR.init(afrNoiseCovariance, initEstimateCovBoost, initEstimateAfr); // R, Q, uHat
+  kfBoost.init(boostNoiseCovariance, initEstimateCovAFR, initEstimateBoost);
   screen.init();
 }
 
@@ -62,12 +62,13 @@ void loop(void)
     afr = sensor.readAfr();
     afr = kfAFR.filter(afr);
 
-    waterTemp = sensor.readTemp();
+    //waterTemp = sensor.readTemp();
     //waterTemp = kf.filter(waterTemp);
-    
-    // Update max and min
-    //if (boostPressure > boostMax) boostMax = boostPressure;
-    //if (boostPressure < boostMin) boostMin = boostPressure;
+
+    Serial.print("AFR: ");
+    Serial.println(afr, 1);
+    Serial.print("Boost: ");
+    Serial.println(boostPressure/1000.0, 2);
 
     if (currentPeakMillis - startPeakMillis > peakPeriod) // reset max boost pressure;
     {
@@ -89,7 +90,7 @@ void loop(void)
 
       if (currentMillis - startPeakMillis >= startUpPeriod)
       {
-        screenMode = 4; // switch screen mode
+        screenMode = 3; // switch screen mode
       }
       
       break;

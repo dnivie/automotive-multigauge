@@ -1,7 +1,7 @@
 #include "Kalman.h"
 
 
-void Kalman::init(uint8_t noiseCovariance, float initialEstimateCovariance, float initialEstimatedState)
+void Kalman::init(float noiseCovariance, float initialEstimateCovariance, float initialEstimatedState)
 {
   R = noiseCovariance;
   uHat = initialEstimatedState;

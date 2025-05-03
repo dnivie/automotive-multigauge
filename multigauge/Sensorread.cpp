@@ -4,8 +4,8 @@
 #define afrPin A1
 #define tempPin A2
 #define seriesResistor 2800
-#define thermistorNominal 2800 // resistance at 20-25C
-#define temperatureNominal 20 //eller 25?
+#define thermistorNominal 2800 // resistance at 20C
+#define temperatureNominal 20
 #define bCoefficient 3950 // value of the other resistor
 
 Sensor::Sensor() {}
@@ -96,7 +96,7 @@ float Sensor::calculateTemp(uint16_t t)
 }
 
 
-float Sensor::calculateBoost(uint16_t m)
+float Sensor::calculateBoost(int16_t m)
 {
   /*
   Scale the sensor reading into range
@@ -124,4 +124,3 @@ float Sensor::calculateBoost(uint16_t m)
   return (m-56)/0.466; // error of +10
   //return ((495*(m-56))/233)+20
 }
-
